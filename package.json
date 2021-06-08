@@ -1,0 +1,25 @@
+{
+  "name": "sql_employee_tracker",
+  "version": "1.0.0",
+  "description": "SQL employee tracker challenge",
+  "main": "index.js",
+  "scripts": {
+    "test": "none"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/augustinandrea/SQL_employee_tracker.git"
+  },
+  "keywords": [
+    "none"
+  ],
+  "author": "Andrea Augustin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/augustinandrea/SQL_employee_tracker/issues"
+  },
+  "homepage": "https://github.com/augustinandrea/SQL_employee_tracker#readme",
+  "dependencies": {
+    "mysql2": "^2.2.5"
+  }
+}
