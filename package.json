@@ -20,6 +20,8 @@
   },
   "homepage": "https://github.com/augustinandrea/SQL_employee_tracker#readme",
   "dependencies": {
+    "inquirer": "^8.1.0",
+    "mysql": "^2.18.1",
     "mysql2": "^2.2.5"
   }
 }
