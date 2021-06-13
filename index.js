@@ -8,14 +8,17 @@ require("console.table");
 
 // list of needed message prompts
 const message_prompts = {
-    all_employees: "View All Employees",
+    view_employees: "View All Employees",
     by_department: "View All Employees By Department",
     by_manager: "View All Employees By Manager",
+    view_departments: "View All Departments",
+    add_department: "Add A Department",
+    add_role: "Add A Role",
     add_employee: "Add An Employee",
     remove_employee: "Remove An Employee",
     update_role: "Update Employee Role",
     update_em_manager: "Update Employee Manager",
-    all_roles: "View All Roles",
+    view_roles: "View All Roles",
     exit: "Exit"
 }
 
@@ -41,13 +44,18 @@ function prompt() {
         type: "list",
         message: "What would you like to do?",
         choices: [
-            message_prompts.all_employees,
-            message_prompts.by_department,
-            message_prompts.by_manager,
+            message_prompts.view_departments,
+            message_prompts.view_roles,
+            message_prompts.view_employees,
+            message_prompts.add_department,
+            message_prompts.add_role,
             message_prompts.add_employee,
-            message_prompts.remove_employee,
             message_prompts.update_role,
-            message_prompts.all_roles,
+            message_prompts.remove_employee,
+
+            message_prompts.by_manager,
+            message_prompts.by_department,
+
             message_prompts.exit
         ]
     })
@@ -55,46 +63,63 @@ function prompt() {
             console.log("answer", answer);
 
             switch (answer.action) {
-                case message_prompts.all_employees:
+
+                case message_prompts.view_departments: //view all departments
+                    view_departments();
+                    console.log("help");
+                    break;
+
+                case message_prompts.view_roles:  //view all roles
+                    view_roles();
+                    break;
+
+                case message_prompts.view_employees: //view all employees
                     view_all_employees();
                     break;
 
-                case message_prompts.by_department:
-                    view_by_department();
+                case message_prompts.add_department: ///Add a new department
+                    add_department();
                     break;
 
-                case message_prompts.by_manager:
-                    view_by_manager();
+                case message_prompts.add_role: //Add a new role
+                    add_role();
                     break;
 
-                case message_prompts.add_employee:
+                case message_prompts.add_employee: //Add a new employee
                     add_employee();
                     break;
 
-                case message_prompts.remove_employee:
+                case message_prompts.remove_employee:  //remove an employee
                     remove_employee();
                     break;
 
-                case message_prompts.update_role:
+                case message_prompts.update_role: //update an employee role
                     update_role();
                     break;
 
-                case message_prompts.all_roles:
+                case message_prompts.by_department: //view all employees by department
+                    view_by_department();
+                    break;
+
+                case message_prompts.by_manager: //view all employees by manager
+                    view_by_manager();
+                    break;
+
+                case message_prompts.all_roles: //view all employees by role
                     view_all_roles();
                     break;
 
-                case message_prompts.exit:
+                case message_prompts.exit: //exit the program
                     connection.end();
                     break;
-                
-                default:
 
+                default:
                     break;
             }
         });
 }
 
-// functions for all the difference cases needed----------------
+// -------------------functions for all the difference cases needed----------------
 
 function view_all_employees() {
     const query = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager
@@ -113,6 +138,9 @@ function view_all_employees() {
     });
 }
 
+// ------------ ALL FUNCTIONS FOR DEPARTMENT-BASED OUTPUT-----------------------
+
+// view all employees by department
 function view_by_department() {
     const query = `SELECT department.name AS department, role.title, employee.id, employee.first_name, employee.last_name
     FROM employee
@@ -131,6 +159,42 @@ function view_by_department() {
 
 }
 
+// view all the departments
+function view_departments() {
+    var query = "SELECT * FROM department";
+
+    connection.query(query, function (err, res) {
+        console.log("\n");
+        console.log("VIEW ALL DEPARTMENTS");
+        console.log("\n");
+        console.table(res);
+        prompt();
+    });
+}
+
+// for adding a department
+async function add_department() {
+
+    inquirer.prompt({
+        name: "department",
+        type: "input",
+        message: "Enter the new department name: ",
+    })
+        .then(function (answer) {
+            var query = "INSERT INTO department (name) VALUES ( ? )";
+            connection.query(query, answer.department, function (err, res) {
+                console.log("\n");
+                console.log(`You have added this department: ${(answer.department)}`)
+            })
+            view_departments();
+        });
+
+}
+
+
+// ------------ FUNCTIONS FOR MANAGER BASED OUTPUT ----------------
+
+// view all employees by managers
 function view_by_manager() {
     const query = `SELECT CONCAT(manager.first_name, ' ', manager.last_name) AS manager, department.name AS department, employee.id, employee.first_name, employee.last_name, role.title
     FROM employee
@@ -148,8 +212,11 @@ function view_by_manager() {
     });
 }
 
+// ------------- FUNCTIONS BASED ON NEEDING ROLE OUTPUT ---------------
+
+// view all the employees by roles
 function view_all_roles() {
-    const query = `SELECT role.title, employee.id, employee.first_name, employee.last_name, department.name AS department
+    const query = `SELECT role.title, role.id, department.name AS department, role.salary
     FROM employee
     LEFT JOIN role ON (role.id = employee.role_id)
     LEFT JOIN department ON (department.id = role.department_id)
@@ -164,8 +231,41 @@ function view_all_roles() {
     });
 }
 
+//view all roles
+function view_roles() {
+    var query = `SELECT role.title, role.id, department.name AS department, role.salary
+    FROM employee
+    LEFT JOIN role ON (role.id = employee.role_id)
+    LEFT JOIN department ON (department.id = role.department_id)
+    ORDER BY role.title;`;
 
-// funaction for adding employees
+    connection.query(query, function (err, res) {
+        console.log("\n");
+        console.log("VIEW ALL ROLES");
+        console.log("\n");
+        console.table(res);
+        prompt();
+    });
+}
+
+function add_role() {
+    inquirer.prompt({
+        name: "role",
+        type: "input",
+        message: "Enter the new role name: ",
+    })
+        .then(function (answer) {
+            var query = "INSERT INTO role (name) VALUES ( ? )";
+            connection.query(query, answer.department, function (err, res) {
+                console.log("\n");
+                console.log(`You have added this role: ${(answer.role)}`)
+            })
+            view_roles();
+        });
+}
+
+
+// function for adding employees
 async function add_employee() {
     const add_name = await inquirer.prompt(ask_name());
 
@@ -202,7 +302,7 @@ async function add_employee() {
             let manager_id;
             let manager_name;
             if (manager === 'none') {
-                manager_id = null;
+                manager_id = NULL;
             } else {
                 for (const data of res) {
                     data.fullName = `${data.first_name} ${data.last_name}`;
