@@ -1,7 +1,7 @@
 'use strict';
 
 //Dependencies needed
-const mysql = require("mysql");
+const mysql = require("mysql2");
 const inquirer = require("inquirer");
 
 require("console.table");
@@ -22,7 +22,7 @@ const message_prompts = {
 // create the port and add password and stuff like that
 const connection = mysql.createConnection({
     host: 'localhost',
-    port: 3306,
+    //port: 3306,
     user: 'root',
     password: 'Cl0akedSchemer',
     database: 'employees'
@@ -38,7 +38,7 @@ function prompt() {
 
     inquirer.prompt({
         name: "action",
-        type: "type",
+        type: "list",
         message: "What would you like to do?",
         choices: [
             message_prompts.all_employees,
@@ -72,18 +72,22 @@ function prompt() {
                     break;
 
                 case message_prompts.remove_employee:
-
+                    remove_employee();
                     break;
 
                 case message_prompts.update_role:
-
+                    update_role();
                     break;
 
                 case message_prompts.all_roles:
-
+                    view_all_roles();
                     break;
 
                 case message_prompts.exit:
+                    connection.end();
+                    break;
+                
+                default:
 
                     break;
             }
@@ -144,6 +148,22 @@ function view_by_manager() {
     });
 }
 
+function view_all_roles() {
+    const query = `SELECT role.title, employee.id, employee.first_name, employee.last_name, department.name AS department
+    FROM employee
+    LEFT JOIN role ON (role.id = employee.role_id)
+    LEFT JOIN department ON (department.id = role.department_id)
+    ORDER BY role.title;`;
+    connection.query(query, (err, res) => {
+        if (err) throw err;
+        console.log('\n');
+        console.log('VIEW EMPLOYEE BY ROLE');
+        console.log('\n');
+        console.table(res);
+        prompt();
+    });
+}
+
 
 // funaction for adding employees
 async function add_employee() {
@@ -160,10 +180,10 @@ async function add_employee() {
                 message: 'What is the employee role?: '
             }
         ]);
-        let roleId;
+        let role_id;
         for (const row of res) {
             if (row.title === role) {
-                roleId = row.id;
+                role_id = row.id;
                 continue;
             }
         }
@@ -179,18 +199,18 @@ async function add_employee() {
                     message: 'Choose the employee Manager: '
                 }
             ]);
-            let managerId;
-            let managerName;
+            let manager_id;
+            let manager_name;
             if (manager === 'none') {
-                managerId = null;
+                manager_id = null;
             } else {
                 for (const data of res) {
                     data.fullName = `${data.first_name} ${data.last_name}`;
                     if (data.fullName === manager) {
-                        managerId = data.id;
-                        managerName = data.fullName;
-                        console.log(managerId);
-                        console.log(managerName);
+                        manager_id = data.id;
+                        manager_name = data.fullName;
+                        console.log(manager_id);
+                        console.log(manager_name);
                         continue;
                     }
                 }
@@ -201,8 +221,8 @@ async function add_employee() {
                 {
                     first_name: add_name.first,
                     last_name: add_name.last,
-                    role_id: roleId,
-                    manager_id: parseInt(managerId)
+                    role_id: role_id,
+                    manager_id: parseInt(manager_id)
                 },
                 (err, res) => {
                     if (err) throw err;
@@ -213,6 +233,61 @@ async function add_employee() {
         });
     });
 }
+
+async function remove_employee() {
+    const answer = await inquirer.prompt([
+        {
+            name: "ID",
+            type: "input",
+            message: "Enter the employee ID you want to remove: "
+        }
+    ]);
+
+    connection.query("DELETE FROM employee WHERE ? ",
+        { id: answer.ID },
+        function (err) {
+            if (err) {
+                throw err;
+            }
+        }
+    )
+    console.log("Employee has been removed from the system.");
+    prompt();
+}
+
+async function update_role() {
+    const employee_id = await inquirer.prompt(ask_id());
+
+    connection.query("SELECT role.id, role.title FROM role ORDER BY role.id;", async (err, res) => {
+        if (err) { throw err; }
+        const { role } = await inquirer.prompt([
+            {
+                name: "role",
+                type: "list",
+                choices: () => res.map(res => res.title),
+                message: "What is the new employee's role? "
+            }
+        ]);
+
+        let role_id;
+        for (const row of res) {
+            if (row.title === role) {
+                role_id = row.id;
+                continue;
+            }
+        }
+
+        connection.query(`UPDATE employee
+        SET role_id = ${role_id}
+        WHERE employee.id = ${employee_id.name}`, async (err, res) => {
+            if (err) { throw err; }
+            console.log("Role has been updated... ");
+            prompt();
+        });
+    });
+
+}
+
 
 
 // just function for asking name of employee for input reasons
@@ -232,7 +307,7 @@ function ask_name() {
     ]);
 }
 
-function ask_id(){
+function ask_id() {
     return ([
         {
             name: "name",
@@ -256,12 +331,9 @@ function remove(input) {
             choices: [promptQ.yes, promptQ.no]
         }
     ])
-    .then(answer => {
-        if (input === 'delete' && answer.action === "yes") remove_employee();
-        else if (input === 'role' && answer.action === "yes") update_role();
-        else view_all_employees();
-
-
-
-    });
+        .then(answer => {
+            if (input === 'delete' && answer.action === "yes") remove_employee();
+            else if (input === 'role' && answer.action === "yes") update_role();
+            else view_all_employees();
+        });
 };
