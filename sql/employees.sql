@@ -44,6 +44,7 @@ VALUES
     ('Media Specialist', 3000000, 3),
     ('CEO', 45000000, 4),
     ('CEO Assistant', 25000000, 4);
+
 INSERT INTO employee
     (first_name, last_name, role_id, manager_id)
 VALUES

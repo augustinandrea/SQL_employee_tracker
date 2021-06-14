@@ -16,6 +16,8 @@ const message_prompts = {
     add_role: "Add A Role",
     add_employee: "Add An Employee",
     remove_employee: "Remove An Employee",
+    remove_role: "Remove A Role",
+    remove_department: "Remove A Department",
     update_role: "Update Employee Role",
     update_em_manager: "Update Employee Manager",
     view_roles: "View All Roles",
@@ -51,7 +53,10 @@ function prompt() {
             message_prompts.add_role,
             message_prompts.add_employee,
             message_prompts.update_role,
+            
             message_prompts.remove_employee,
+            message_prompts.remove_role,
+            message_prompts.remove_department,
 
             message_prompts.by_manager,
             message_prompts.by_department,
@@ -66,7 +71,6 @@ function prompt() {
 
                 case message_prompts.view_departments: //view all departments
                     view_departments();
-                    console.log("help");
                     break;
 
                 case message_prompts.view_roles:  //view all roles
@@ -89,12 +93,20 @@ function prompt() {
                     add_employee();
                     break;
 
+                case message_prompts.update_role: //update an employee role
+                    update_role();
+                    break;
+
                 case message_prompts.remove_employee:  //remove an employee
                     remove_employee();
                     break;
 
-                case message_prompts.update_role: //update an employee role
-                    update_role();
+                case message_prompts.remove_role: // remove department
+                    remove_role();
+                    break;
+
+                case message_prompts.remove_department: //remove department
+                    remove_department();
                     break;
 
                 case message_prompts.by_department: //view all employees by department
@@ -121,6 +133,7 @@ function prompt() {
 
 // -------------------functions for all the difference cases needed----------------
 
+// view all the employees
 function view_all_employees() {
     const query = `SELECT employee.id, employee.first_name, employee.last_name, role.title, department.name AS department, role.salary, CONCAT(manager.first_name, ' ', manager.last_name) AS manager
     FROM employee
@@ -161,7 +174,8 @@ function view_by_department() {
 
 // view all the departments
 function view_departments() {
-    var query = "SELECT * FROM department";
+    var query = `SELECT * FROM department
+    ORDER BY department.id;`;
 
     connection.query(query, function (err, res) {
         console.log("\n");
@@ -188,8 +202,31 @@ async function add_department() {
             })
             view_departments();
         });
-
 }
+
+// remove department from system
+async function remove_department() {
+    const answer = await inquirer.prompt([
+        {
+            name: "department_id",
+            type: "input",
+            message: "Enter the department ID you want to remove: "
+        }
+    ]);
+
+    connection.query("DELETE FROM department WHERE ? ",
+        { id: answer.department_id },
+        function (err) {
+            if (err) {
+                throw err;
+            }
+        }
+    )
+    console.log("Department has been removed from the system. \n");
+    prompt();
+}
+
+
 
 
 // ------------ FUNCTIONS FOR MANAGER BASED OUTPUT ----------------
@@ -233,11 +270,7 @@ function view_all_roles() {
 
 //view all roles
 function view_roles() {
-    var query = `SELECT role.title, role.id, department.name AS department, role.salary
-    FROM employee
-    LEFT JOIN role ON (role.id = employee.role_id)
-    LEFT JOIN department ON (department.id = role.department_id)
-    ORDER BY role.title;`;
+    var query = "SELECT * FROM role";
 
     connection.query(query, function (err, res) {
         console.log("\n");
@@ -248,24 +281,63 @@ function view_roles() {
     });
 }
 
-function add_role() {
-    inquirer.prompt({
-        name: "role",
-        type: "input",
-        message: "Enter the new role name: ",
-    })
-        .then(function (answer) {
-            var query = "INSERT INTO role (name) VALUES ( ? )";
-            connection.query(query, answer.department, function (err, res) {
-                console.log("\n");
-                console.log(`You have added this role: ${(answer.role)}`)
-            })
-            view_roles();
-        });
+// Add a role to the system
+async function add_role() {
+    const add_role = await inquirer.prompt(ask_role());
+    const add_salary = await inquirer.prompt(ask_salary());
+
+    connection.query('SELECT * FROM department;', async (err, res) => {
+        if (err) throw err;
+        console.log("work");
+
+        const { department } = await inquirer.prompt([
+            {
+                name: "department",
+                type: "list",
+                choices: () => res.map(res => res.id),
+                message: "Choose a department ID for the role to have:"
+            }
+        ]);
+
+        connection.query(
+            'INSERT INTO role SET ?',
+            {
+                title: add_role.role,
+                salary: add_salary.salary,
+                department_id: parseInt(department)
+            },
+            (err, res) => {
+                if (err) throw err;
+                view_roles();
+            }
+        );
+    });
 }
 
+// remove role from system
+async function remove_role() {
+    const answer = await inquirer.prompt([
+        {
+            name: "role_id",
+            type: "input",
+            message: "Enter the role ID you want to remove: "
+        }
+    ]);
 
-// function for adding employees
+    connection.query("DELETE FROM role WHERE ? ",
+        { id: answer.role_id },
+        function (err) {
+            if (err) {
+                throw err;
+            }
+        }
+    )
+    console.log("Role has been removed from the system. \n");
+    prompt();
+}
+
+//------------------ Applying to all the employees
+// --------------------function for adding employees
 async function add_employee() {
     const add_name = await inquirer.prompt(ask_name());
 
@@ -277,7 +349,7 @@ async function add_employee() {
                 name: 'role',
                 type: 'list',
                 choices: () => res.map(res => res.title),
-                message: 'What is the employee role?: '
+                message: 'What role does the employee have? '
             }
         ]);
         let role_id;
@@ -334,6 +406,7 @@ async function add_employee() {
     });
 }
 
+// remove an employee
 async function remove_employee() {
     const answer = await inquirer.prompt([
         {
@@ -402,7 +475,7 @@ function ask_name() {
         {
             name: "last",
             type: "input",
-            message: "Enter the last name: "
+            message: "Enter the last name:"
         }
     ]);
 }
@@ -412,10 +485,31 @@ function ask_id() {
         {
             name: "name",
             type: "input",
-            message: "What is the employee ID?:  "
+            message: "What is the employee ID?"
         }
     ]);
 }
+
+function ask_role() {
+    return ([
+        {
+            name: "role",
+            type: "input",
+            message: "Enter the new role:"
+        }
+    ]);
+}
+
+function ask_salary() {
+    return ([
+        {
+            name: "salary",
+            type: "input",
+            message: "Enter the salary for this role:"
+        }
+    ]);
+}
+
 
 function remove(input) {
     const promptQ = {
