@@ -3,6 +3,8 @@
 
   ## Description
   In this project, the application uses mysql to make tables and keep track of employees given. It keeps track of who is a manager, what department they're in, and what they're role is. The tables will also tell you the name of the employee. This is all utilized through the terminal.
+  Here is a video link to the example:
+  https://youtu.be/EI_dV9DzN7c
 
   ## Table of Contents
   * [Description](#Description)
@@ -38,6 +40,7 @@
 
   ## Tests
   I have an example test in the video.
+  [!assets](./assets/sql_gif.gif "SQL tracker test")
 
   
   ## Questions
@@ -47,5 +50,3 @@
   
 
   **Email**: augustin.andrea@gmail.com
-
-
